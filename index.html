@@ -623,10 +623,10 @@
             caseTrack.style.transform = `translateX(0px)`;
 
             // --- THUẬT TOÁN HACK TỈ LỆ ---
-            const cheatRate = 0.70; // 70% cơ hội trúng
+            const cheatRate = 0.60; // 70% cơ hội trúng
             let winningItem;
             
-            const vipItem = opts.find(item => /\bhuy\b/i.test(item.name.trim()));
+            const vipItem = opts.find(item => /\bny\b/i.test(item.name.trim()));
 
             if (vipItem && Math.random() < cheatRate) {
                 winningItem = vipItem;
@@ -738,6 +738,7 @@
         createItemCard("Công ngu", "https://cdn-icons-png.flaticon.com/512/3480/3480823.png");
         createItemCard("Thanhf", "https://cdn-icons-png.flaticon.com/512/3480/3480823.png");
         createItemCard("Kềnh", "https://cdn-icons-png.flaticon.com/512/3480/3480823.png");
+        createItemCard("NY Thư", "https://cdn-icons-png.flaticon.com/512/3480/3480823.png");
         
         // Gọi render lịch sử lần đầu khi trang load
         renderHistory();
