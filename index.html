@@ -130,13 +130,12 @@
 
         /* Danh sách tùy chỉnh món ăn */
         #optionsContainer {
-            max-height: 250px; /* Chiều cao cố định, quá dài sẽ hiện thanh cuộn */
+            max-height: 250px; 
             overflow-y: auto;
             margin-bottom: 15px;
             padding-right: 5px;
         }
 
-        /* Tùy chỉnh thanh cuộn cho đẹp */
         #optionsContainer::-webkit-scrollbar { width: 6px; }
         #optionsContainer::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
 
@@ -233,14 +232,41 @@
         button.spin-btn:active { transform: scale(0.95); }
         button.spin-btn:disabled { background: #555; color: #888; cursor: not-allowed; box-shadow: none; }
 
+        /* --- HIỆU ỨNG XUẤT HIỆN KẾT QUẢ --- */
         #result {
             margin-top: 20px;
-            font-size: 24px;
+            font-size: 28px; /* Làm chữ to hơn một chút */
             font-weight: bold;
             color: #2ecc71;
             text-align: center;
-            min-height: 35px;
+            min-height: 40px;
+            opacity: 0; /* Ẩn đi khi chưa quay xong */
+            transform: scale(0.5);
         }
+
+        .show-result {
+            /* Animation nảy lên */
+            animation: popUpGlow 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes popUpGlow {
+            0% { 
+                transform: scale(0.5) translateY(20px); 
+                opacity: 0; 
+                text-shadow: none;
+            }
+            70% { 
+                transform: scale(1.1) translateY(-5px); 
+                opacity: 1; 
+                text-shadow: 0 0 20px rgba(46, 204, 113, 0.8);
+            }
+            100% { 
+                transform: scale(1) translateY(0); 
+                opacity: 1; 
+                text-shadow: 0 0 15px rgba(46, 204, 113, 0.6); /* Sáng neon */
+            }
+        }
+        /* --------------------------------- */
 
         /* CSS Responsive cho Điện thoại */
         @media (max-width: 600px) {
@@ -249,8 +275,9 @@
             .case-item img { width: 40px; height: 40px; }
             .case-item .name { font-size: 14px; }
             button.spin-btn { font-size: 18px; padding: 12px; }
-            .option-row input[type="text"] { width: 80px; } /* Thu gọn trên đt */
+            .option-row input[type="text"] { width: 80px; } 
             .option-row .upload-btn { padding: 8px; font-size: 11px;}
+            #result { font-size: 24px; }
         }
 
         .rarity-blue { border-bottom-color: #4b69ff; }
@@ -276,9 +303,7 @@
     <div class="controls-container">
         <div class="data-input">
             <h3>Quản lý món ăn:</h3>
-            <div id="optionsContainer">
-                <!-- Javascript sẽ tự động nhét các ô nhập liệu vào đây -->
-            </div>
+            <div id="optionsContainer"></div>
             <button class="add-row-btn" id="addOptionBtn">+ THÊM LỰA CHỌN MỚI</button>
         </div>
 
@@ -301,7 +326,6 @@
         const rarities = ['rarity-blue', 'rarity-purple', 'rarity-pink', 'rarity-red', 'rarity-gold'];
         const defaultIcon = 'https://cdn-icons-png.flaticon.com/512/3480/3480823.png';
 
-        // Âm thanh Drive của bạn
         const tickSoundUrl = 'https://drive.google.com/uc?export=download&id=1aACqO6UolWxf3Y6fHk9YhrwzGEUwKVzt';
         const winSoundUrl = 'https://drive.google.com/uc?export=download&id=1ArX_eHGZgOXbnH7E7Gm_AUY7auykHZAz';
         
@@ -323,7 +347,6 @@
             winAudio.play().catch(e => {});
         }
 
-        // --- QUẢN LÝ DANH SÁCH MÓN ĂN VÀ UPLOAD ẢNH ---
         function createOptionRow(name = "", imgSrc = defaultIcon) {
             const row = document.createElement('div');
             row.className = 'option-row';
@@ -338,20 +361,17 @@
                 <button class="delete-btn">X</button>
             `;
 
-            // Xử lý sự kiện Upload File (Không cần server)
             const fileInput = row.querySelector('.file-input');
             const previewImg = row.querySelector('.preview-img');
             
             fileInput.addEventListener('change', function(e) {
                 const file = e.target.files[0];
                 if (file) {
-                    // Tạo một URL tạm thời ngay trên trình duyệt để hiển thị ảnh
                     const objectUrl = URL.createObjectURL(file);
                     previewImg.src = objectUrl;
                 }
             });
 
-            // Xóa dòng
             row.querySelector('.delete-btn').addEventListener('click', () => {
                 row.remove();
             });
@@ -361,7 +381,6 @@
 
         addOptionBtn.addEventListener('click', () => createOptionRow());
 
-        // Hàm trích xuất dữ liệu từ các dòng hiện tại
         function getOptions() {
             const rows = document.querySelectorAll('.option-row');
             let opts = [];
@@ -377,7 +396,6 @@
             if (opts.length === 0) return [{ name: "Chưa nhập món", img: defaultIcon }];
             return opts;
         }
-        // ----------------------------------------------
 
         function createItemNode(itemData) {
             const div = document.createElement('div');
@@ -413,6 +431,9 @@
             isSpinning = true;
             spinBtn.disabled = true;
             spinBtn.innerText = "ĐANG MỞ...";
+            
+            // Ẩn kết quả cũ đi để chuẩn bị cho hiệu ứng mới
+            resultDiv.classList.remove('show-result');
             resultDiv.innerText = "";
 
             const opts = getOptions();
@@ -468,7 +489,11 @@
                 isSpinning = false;
                 cancelAnimationFrame(checkPosition);
                 playWin();
+                
+                // Kích hoạt hiệu ứng xuất hiện kết quả
                 resultDiv.innerHTML = "🎉 " + winningItem.name + " 🎉";
+                resultDiv.classList.add('show-result');
+                
                 spinBtn.disabled = false;
                 spinBtn.innerText = "MỞ LẠI";
             }, 6600);
@@ -494,13 +519,11 @@
             spin();
         });
         
-        // Tạo sẵn vài lựa chọn mẫu khi vừa load trang
         createOptionRow("Cơm Tấm");
         createOptionRow("Bún Bò Huế");
         createOptionRow("KFC");
         createOptionRow("Bún Đậu Mắm Tôm");
         
-        // Đợi tạo xong giao diện thì render khung trượt
         setTimeout(initTrack, 100);
     </script>
 </body>
