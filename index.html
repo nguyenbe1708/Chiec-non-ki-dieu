@@ -129,16 +129,19 @@
         button.spin-btn:active { transform: scale(0.98); }
         button.spin-btn:disabled { background: #444; color: #888; cursor: not-allowed; }
 
-        .inventory-section {
+        .inventory-section, .history-section {
             max-width: 1000px;
-            margin: 0 auto;
+            margin: 0 auto 30px;
         }
 
-        .inventory-section h2 {
+        .inventory-section h2, .history-section h2 {
             font-size: 22px;
             font-weight: normal;
             margin-bottom: 20px;
             color: #fff;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .grid-container {
@@ -246,6 +249,71 @@
         }
         .add-card:hover { border-color: #666; color: #aaa; }
 
+        /* --- LỊCH SỬ QUAY --- */
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+        
+        .history-list::-webkit-scrollbar { width: 6px; }
+        .history-list::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
+
+        .history-item {
+            display: flex;
+            align-items: center;
+            background: var(--bg-card);
+            padding: 10px 15px;
+            border-radius: 4px;
+            gap: 15px;
+            border-left: 4px solid transparent; /* Sẽ cập nhật theo độ hiếm */
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .history-item img {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .history-info {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        .history-info .name {
+            font-size: 16px;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .history-info .time {
+            font-size: 12px;
+            color: var(--text-sub);
+        }
+
+        .clear-btn {
+            background: rgba(231, 76, 60, 0.1);
+            color: #e74c3c;
+            border: 1px solid #e74c3c;
+            padding: 6px 15px;
+            font-size: 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .clear-btn:hover { background: #e74c3c; color: white; }
+
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -327,11 +395,11 @@
         }
         .btn-continue:hover { background: var(--color-primary-hover); }
 
-        .rarity-blue { border-bottom-color: #4b69ff !important; }
-        .rarity-purple { border-bottom-color: #8847ff !important; }
-        .rarity-pink { border-bottom-color: #d32ce6 !important; }
-        .rarity-red { border-bottom-color: #eb4b4b !important; }
-        .rarity-gold { border-bottom-color: #e4ae39 !important; }
+        .rarity-blue { border-bottom-color: #4b69ff !important; border-left-color: #4b69ff !important; }
+        .rarity-purple { border-bottom-color: #8847ff !important; border-left-color: #8847ff !important; }
+        .rarity-pink { border-bottom-color: #d32ce6 !important; border-left-color: #d32ce6 !important; }
+        .rarity-red { border-bottom-color: #eb4b4b !important; border-left-color: #eb4b4b !important; }
+        .rarity-gold { border-bottom-color: #e4ae39 !important; border-left-color: #e4ae39 !important; }
 
         @media (max-width: 600px) {
             .case-container { height: 140px; }
@@ -363,6 +431,17 @@
         </div>
     </div>
 
+    <!-- KHU VỰC LỊCH SỬ QUAY -->
+    <div class="history-section">
+        <h2>
+            Lịch sử quay
+            <button class="clear-btn" id="clearHistoryBtn">Xóa lịch sử</button>
+        </h2>
+        <div class="history-list" id="historyList">
+            <!-- Dữ liệu lịch sử sẽ được render vào đây -->
+        </div>
+    </div>
+
     <div class="modal-overlay" id="resultModal">
         <div class="modal-content">
             <h2 class="modal-title" id="modalTitle">Tên Món Ăn</h2>
@@ -388,6 +467,10 @@
         const modalRarityLine = document.getElementById('modalRarityLine');
         const closeModalBtn = document.getElementById('closeModalBtn');
 
+        // History elements
+        const historyList = document.getElementById('historyList');
+        const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+
         const totalItems = 80;
         const winIndex = 70;
         const rarities = ['rarity-blue', 'rarity-purple', 'rarity-pink', 'rarity-red', 'rarity-gold'];
@@ -399,6 +482,37 @@
         const tickAudios = Array.from({ length: 5 }, () => new Audio(tickSoundUrl));
         let tickIndex = 0;
         const winAudio = new Audio(winSoundUrl);
+
+        // Khởi tạo mảng lưu lịch sử từ LocalStorage (giữ lại kể cả khi f5 trang)
+        let spinHistory = JSON.parse(localStorage.getItem('spinHistory')) || [];
+
+        function renderHistory() {
+            historyList.innerHTML = '';
+            if (spinHistory.length === 0) {
+                historyList.innerHTML = '<p style="color: var(--text-sub); text-align: center;">Chưa có lịch sử quay.</p>';
+                return;
+            }
+            spinHistory.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'history-item ' + item.rarityClass;
+                div.innerHTML = `
+                    <img src="${item.img}" alt="history-item">
+                    <div class="history-info">
+                        <span class="name">${item.name}</span>
+                        <span class="time">${item.time}</span>
+                    </div>
+                `;
+                historyList.appendChild(div);
+            });
+        }
+
+        clearHistoryBtn.addEventListener('click', () => {
+            if (confirm("Bạn có chắc chắn muốn xóa toàn bộ lịch sử?")) {
+                spinHistory = [];
+                localStorage.removeItem('spinHistory');
+                renderHistory();
+            }
+        });
 
         function playTick() {
             const audio = tickAudios[tickIndex];
@@ -509,10 +623,9 @@
             caseTrack.style.transform = `translateX(0px)`;
 
             // --- THUẬT TOÁN HACK TỈ LỆ ---
-            const cheatRate = 0.70; // 50% cơ hội trúng
+            const cheatRate = 0.70; // 70% cơ hội trúng
             let winningItem;
             
-            // Tìm tên có chứa chữ "huy" đứng độc lập (Ví dụ: Huy, HUY, Nguyễn Văn Huy)
             const vipItem = opts.find(item => /\bhuy\b/i.test(item.name.trim()));
 
             if (vipItem && Math.random() < cheatRate) {
@@ -568,12 +681,30 @@
                 cancelAnimationFrame(checkPosition);
                 playWin();
                 
+                // Cập nhật giao diện Modal
                 modalTitle.innerText = winningItem.name;
                 modalImage.src = winningItem.img;
                 modalRarityLine.className = 'modal-img-container ' + winningItem.rarityClass;
-                
                 resultModal.classList.add('show');
                 
+                // Cập nhật Lịch Sử Quay
+                const now = new Date();
+                const timeString = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                
+                spinHistory.unshift({
+                    name: winningItem.name,
+                    img: winningItem.img,
+                    rarityClass: winningItem.rarityClass,
+                    time: timeString
+                });
+                
+                // Giới hạn lưu 30 kết quả gần nhất để tránh lag
+                if (spinHistory.length > 30) spinHistory.pop();
+                
+                // Lưu vào LocalStorage
+                localStorage.setItem('spinHistory', JSON.stringify(spinHistory));
+                renderHistory();
+
                 spinBtn.disabled = false;
                 spinBtn.innerHTML = "MỞ HÒM TIẾP";
             }, 6600);
@@ -598,6 +729,7 @@
             resultModal.classList.remove('show');
         });
         
+        // Khởi tạo các item ban đầu
         createItemCard("Nguyên Bê", "https://cdn-icons-png.flaticon.com/512/3480/3480823.png");
         createItemCard("Đức Anh", "https://cdn-icons-png.flaticon.com/512/3480/3480823.png");
         createItemCard("Huy Chim", "https://cdn-icons-png.flaticon.com/512/3480/3480823.png");
@@ -607,6 +739,8 @@
         createItemCard("Thanhf", "https://cdn-icons-png.flaticon.com/512/3480/3480823.png");
         createItemCard("Kềnh", "https://cdn-icons-png.flaticon.com/512/3480/3480823.png");
         
+        // Gọi render lịch sử lần đầu khi trang load
+        renderHistory();
         setTimeout(initTrack, 100);
     </script>
 </body>
